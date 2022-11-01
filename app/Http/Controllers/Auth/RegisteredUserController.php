@@ -13,24 +13,6 @@ use Illuminate\Validation\Rules;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     *
-     * @return \Illuminate\View\View
-     */
-    public function create()
-    {
-        return view('auth.register');
-    }
-
-    /**
-     * Handle an incoming registration request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -39,16 +21,48 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        $user = new User;
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->role = $request->role;
+        $user->password =Hash::make($request->password);
 
-        event(new Registered($user));
+        if($user->save()){
+          
+          Auth::login($user);
+          return response()->json($user,201);
 
-        Auth::login($user);
+        }else {
+          return response()
+                          ->json(
+                                array(
+                                      'code' => 404 ,
+                                      'message' => "errror"
+                                    )
+                            );
+        }
 
-        return redirect(RouteServiceProvider::HOME);
+
     }
+
+    public function getUser(){
+      if (Auth::user()==null){
+      return response()
+                      ->json(
+                            array(
+                                  'code' => 203 ,
+                                  'message' => "try again to login"
+                                )
+                        );
+     } else {
+       $user = Auth::user();
+       return response()
+                       ->json(
+                             array(
+                                   'code' => 200 ,
+                                   'message' => "there is "+$user->name+", on the sytem"
+                                 )
+                         );
+     }
+  }
 }
